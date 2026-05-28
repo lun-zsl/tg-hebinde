@@ -16,6 +16,10 @@
         .btn-red { background-color: #dc3545; color: white; }
         .log-panel { background: #000; border: 1px solid #333; padding: 10px; height: 15px; min-height: 150px; font-family: monospace; font-size: 12px; color: #00ff00; overflow-y: auto; white-space: pre-wrap; border-radius: 4px; }
         .flex-box { display: flex; gap: 10px; }
+        
+        /* 新增：隐藏样式的控制类 */
+        .hidden { display: none !important; }
+        .login-area { width: 100%; display: flex; flex-direction: column; background: #2d2d2d; padding: 12px; border-radius: 4px; margin-bottom: 12px; border: 1px dashed #555; }
     </style>
 </head>
 <body>
@@ -28,10 +32,15 @@
     <input type="text" id="api_hash" placeholder="API_HASH">
     <input type="text" id="phone" placeholder="操作账号手机号 (带国家码如 +86...)">
     
-    <div class="flex-box">
-        <button class="btn btn-blue" onclick="sendCode()">⚡ 发送验证码</button>
-        <input type="text" id="login_code" placeholder="输入验证码" style="margin-bottom: 10px;">
-        <button class="btn btn-green" onclick="login()" style="width: 40%;">确认登录</button>
+    <!-- 发送验证码按钮 -->
+    <button class="btn btn-blue" id="send_btn" onclick="sendCode()">⚡ 获取验证码</button>
+
+    <!-- 验证与登录区域：默认隐藏，发送成功后展开 -->
+    <div id="login_fields_area" class="login-area hidden">
+        <div style="font-size: 12px; color: #ffc107; margin-bottom: 8px;">⚠️ 请检查 Telegram App 接收到的验证代码：</div>
+        <input type="text" id="login_code" placeholder="请输入 5 位数字验证码">
+        <input type="password" id="password" placeholder="请输入两步验证密码 (若未开启可不填)">
+        <button class="btn btn-green" onclick="login()">确认登录连接</button>
     </div>
 
     <div class="section-title">🎯 拉人任务分配</div>
@@ -56,22 +65,38 @@
             let data = await res.json();
             let logPanel = document.getElementById('log_panel');
             logPanel.innerText = data.logs;
-            logPanel.scrollTop = logPanel.scrollHeight; // 滚动到最底部
+            logPanel.scrollTop = logPanel.scrollHeight; 
         } catch(e) {}
     }, 2000);
 
     async function sendCode() {
-        let res = await fetch('/api/send_code', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                api_id: document.getElementById('api_id').value,
-                api_hash: document.getElementById('api_hash').value,
-                phone: document.getElementById('phone').value
-            })
-        });
-        let data = await res.json();
-        alert(data.message);
+        let sendBtn = document.getElementById('send_btn');
+        sendBtn.innerText = "正在发送中...";
+        sendBtn.disabled = true;
+
+        try {
+            let res = await fetch('/api/send_code', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    api_id: document.getElementById('api_id').value,
+                    api_hash: document.getElementById('api_hash').value,
+                    phone: document.getElementById('phone').value
+                })
+            });
+            let data = await res.json();
+            
+            // 弹出后端返回的信息
+            alert(data.message || "请求已发送");
+
+            // 显示隐藏的验证码与两步验证输入区域
+            document.getElementById('login_fields_area').classList.remove('hidden');
+        } catch (error) {
+            alert("发送失败，请检查后端服务是否正常运行。");
+        } finally {
+            sendBtn.innerText = "⚡ 重新发送验证码";
+            sendBtn.disabled = false;
+        }
     }
 
     async function login() {
@@ -80,7 +105,8 @@
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
                 phone: document.getElementById('phone').value,
-                code: document.getElementById('login_code').value
+                code: document.getElementById('login_code').value,
+                password: document.getElementById('password').value // 传给后端的两步验证密码
             })
         });
         let data = await res.json();
@@ -103,5 +129,6 @@
 </script>
 
 </body>
+</html>
 </html>
 
