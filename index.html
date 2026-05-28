@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>云端多群联合采集拉人系统</title>
+    <style>
+        body { background-color: #1a1a1a; color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 500px; background: #262626; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        h2 { text-align: center; font-size: 18px; color: #e0e0e0; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .section-title { font-size: 14px; color: #aaa; margin-top: 15px; margin-bottom: 8px; display: flex; align-items: center; }
+        input, textarea { width: 100%; padding: 10px; margin-bottom: 12px; background: #333; border: 1px solid #444; border-radius: 4px; color: #fff; box-sizing: border-box; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+        .btn-blue { background-color: #007bff; color: white; }
+        .btn-green { background-color: #28a745; color: white; }
+        .btn-red { background-color: #dc3545; color: white; }
+        .log-panel { background: #000; border: 1px solid #333; padding: 10px; height: 15px; min-height: 150px; font-family: monospace; font-size: 12px; color: #00ff00; overflow-y: auto; white-space: pre-wrap; border-radius: 4px; }
+        .flex-box { display: flex; gap: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>云端多群联合采集拉人系统 (通用商用版)</h2>
+    
+    <div class="section-title">🔑 专属开发者凭证配置</div>
+    <input type="text" id="api_id" placeholder="API_ID">
+    <input type="text" id="api_hash" placeholder="API_HASH">
+    <input type="text" id="phone" placeholder="操作账号手机号 (带国家码如 +86...)">
+    
+    <div class="flex-box">
+        <button class="btn btn-blue" onclick="sendCode()">⚡ 发送验证码</button>
+        <input type="text" id="login_code" placeholder="输入验证码" style="margin-bottom: 10px;">
+        <button class="btn btn-green" onclick="login()" style="width: 40%;">确认登录</button>
+    </div>
+
+    <div class="section-title">🎯 拉人任务分配</div>
+    <input type="text" id="target_group" placeholder="你的目的地群组链接">
+    <input type="number" id="pull_count" placeholder="要拉取的数量" value="100">
+    <textarea id="source_groups" rows="3" placeholder="采集群 (一行一个群链接)"></textarea>
+
+    <div class="flex-box">
+        <button class="btn btn-green" onclick="startJob()">⚠️ 开始运行</button>
+        <button class="btn btn-red" onclick="alert('任务已尝试停止')">🛑 停止运行</button>
+    </div>
+
+    <div class="section-title">📊 实时监控日志面板:</div>
+    <div class="log-panel" id="log_panel">正在准备就绪，等待下达参数指令...</div>
+</div>
+
+<script>
+    // 自动定时刷新日志
+    setInterval(async () => {
+        try {
+            let res = await fetch('/api/get_logs');
+            let data = await res.json();
+            let logPanel = document.getElementById('log_panel');
+            logPanel.innerText = data.logs;
+            logPanel.scrollTop = logPanel.scrollHeight; // 滚动到最底部
+        } catch(e) {}
+    }, 2000);
+
+    async function sendCode() {
+        let res = await fetch('/api/send_code', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                api_id: document.getElementById('api_id').value,
+                api_hash: document.getElementById('api_hash').value,
+                phone: document.getElementById('phone').value
+            })
+        });
+        let data = await res.json();
+        alert(data.message);
+    }
+
+    async function login() {
+        let res = await fetch('/api/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                phone: document.getElementById('phone').value,
+                code: document.getElementById('login_code').value
+            })
+        });
+        let data = await res.json();
+        alert(data.message);
+    }
+
+    async function startJob() {
+        let res = await fetch('/api/start_job', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                target_group: document.getElementById('target_group').value,
+                pull_count: document.getElementById('pull_count').value,
+                source_groups: document.getElementById('source_groups').value
+            })
+        });
+        let data = await res.json();
+        alert(data.message);
+    }
+</script>
+
+</body>
+</html>
+
