@@ -37,32 +37,20 @@ def send_code():
     
     if not api_id or not api_hash or not phone:
         return jsonify({"status": "error", "message": "请填写完整的 API_ID, API_HASH 和手机号"})
-
-            # 异步运行 Telegram 链接与发送逻辑
-        async def do_send_code():
-            global client
-            # 建立连接
-            client = TelegramClient('session_phone', int(api_id), api_hash)
-            await client.connect()
-            
-            # 发送验证码
-            await client.send_code_request(phone)
-            append_log(f"【验证码提示】已向手机号 {phone} 发送验证码，请在网页输入")
-
-        try:
-            # 使用 asyncio.run 自动管理独立线程的生命周期
-            asyncio.run(do_send_code())
-            return jsonify({"status": "success", "message": "验证码发送成功"})
-        except Exception as e:
-            append_log(f"【错误】发送验证码失败：{str(e)}")
-            return jsonify({"status": "error", "message": str(e)})
-
+    
     # 异步运行 Telegram 链接
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
         client = TelegramClient(f'session_{phone}', int(api_id), api_hash)
         loop.run_until_complete(client.connect())
+        
+        # 发送验证码
+        loop.run_until_complete(client.send_code_request(phone))
+        append_log(f"【验证码提示】已向手机号 {phone} 发送验证码，请在网页输入。")
+        return jsonify({"status": "success", "message": "验证码发送成功，请注意查收"})
+    except Exception as e:
+        append_log(f"【错误】发送验证码失败: {str(e)}")
         return jsonify({"status": "error", "message": str(e)})
 
 @app.route('/api/login', methods=['POST'])
